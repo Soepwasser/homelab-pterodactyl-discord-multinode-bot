@@ -6,7 +6,7 @@
 import aiohttp
 import logging
 from typing import Optional, Dict, Any
-from config import PTERO_PANEL_URL, PTERO_API_KEY, PTERO_CLIENT_KEY, NODE2_PTERO_ID
+from config import PTERO_PANEL_URL, PTERO_API_KEY, PTERO_CLIENT_KEY, PTERO_SERVER_FETCH_LIMIT
 
 logger = logging.getLogger("ptero_client")
 
@@ -60,11 +60,18 @@ class PteroClient:
         return False
 
     # Gets all servers belonging to a specific node (static data) (Application API)
+    # Not using the nodes endpoint, because it doesnt return relationships aka IPs and Ports
+    # For every listed server there'd be a individual API request, which could scale too much
     async def get_node_servers(self, node_id: int) -> list:
-        # Using the servers endpoint filtered by node and include allocations to get IP/ports
-        data = await self._request("GET", f"/api/application/servers?filter[node]={node_id}&include=allocations")
+        # Fetch servers and filter them locally (cant filter by node directly with this endpoint)
+        # The fetch limit can be adjusted in the config.py via PTERO_SERVER_FETCH_LIMIT
+        data = await self._request("GET", f"/api/application/servers?per_page={PTERO_SERVER_FETCH_LIMIT}&include=allocations")
         if data and "data" in data:
-            return [server["attributes"] for server in data["data"]]
+            return [
+                server["attributes"] 
+                for server in data["data"] 
+                if server["attributes"].get("node") == node_id
+            ]
         return []
 
     # Gets the real-time resource usage and state of a server (Client API)

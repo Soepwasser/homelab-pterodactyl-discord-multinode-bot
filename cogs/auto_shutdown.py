@@ -42,8 +42,10 @@ class AutoShutdown(commands.Cog):
         
         # 1. Fetch all servers on Node 2
         servers = await ptero.get_node_servers(NODE2_PTERO_ID)
-        if not servers:
-            logger.debug(f"No servers found on Node {NODE2_PTERO_ID} or API error.")
+        
+        # If servers is empty (no servers on the node), the loop below will just skip and hardware idle logic will trigger
+        if servers is None:
+            logger.error(f"API Error while fetching servers for Node {NODE2_PTERO_ID}.")
             return
 
         active_servers_count = 0
@@ -67,12 +69,13 @@ class AutoShutdown(commands.Cog):
             if status == "running":
                 # Get IP and Port from the pre-fetched allocations
                 allocations = server.get("relationships", {}).get("allocations", {}).get("data", [])
-                primary_allocation = next((a for a in allocations if a.get("attributes", {}).get("is_default")), None)
+                primary_id = server.get("allocation")
+                primary_allocation = next((a for a in allocations if a.get("attributes", {}).get("id") == primary_id), None)
                 
                 ip = ""
                 port = 0
                 if primary_allocation:
-                    ip = primary_allocation["attributes"].get("ip_alias") or primary_allocation["attributes"].get("ip")
+                    ip = primary_allocation["attributes"].get("alias") or primary_allocation["attributes"].get("ip")
                     port = primary_allocation["attributes"].get("port")
                 
                 if ip and port:

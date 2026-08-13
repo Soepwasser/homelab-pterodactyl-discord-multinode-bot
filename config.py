@@ -51,6 +51,9 @@ def validate_config():
     if missing:
         raise ValueError(f"Missing essential configuration variables: {', '.join(missing)}")
 
+# Defines how many servers are fetched in one API request. Increase if there are more than 50 servers in total.
+PTERO_SERVER_FETCH_LIMIT: int = 50
+
 # --- Auto-Shutdown Settings ---
 ENABLE_AUTO_SHUTDOWN: bool = True
 SERVER_IDLE_SHUTDOWN_MINUTES: int = 60
