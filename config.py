@@ -51,6 +51,11 @@ def validate_config():
     if missing:
         raise ValueError(f"Missing essential configuration variables: {', '.join(missing)}")
 
+# --- Auto-Shutdown Settings ---
+ENABLE_AUTO_SHUTDOWN: bool = True
+SERVER_IDLE_SHUTDOWN_MINUTES: int = 60
+NODE_IDLE_SHUTDOWN_MINUTES: int = 60
+
 # --- Meta ---
 BOT_NAME    = "Pterodactyl Multinode Bot"
 BOT_VERSION = "0.0.1"

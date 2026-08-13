@@ -11,6 +11,9 @@ from config import NODE2_MAC, NODE2_IP, NODE2_SSH_USER, NODE2_SSH_KEY_PATH
 
 logger = logging.getLogger("power_manager")
 
+# Global lock to indicate that a start/stop/restart/kill command is currently running (prevents race conditions)
+is_node2_processing = False
+
 # Checks if Node 2 is online by attempting to connect to its SSH port (22)
 async def is_node2_online() -> bool:
     try:

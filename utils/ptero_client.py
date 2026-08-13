@@ -59,5 +59,33 @@ class PteroClient:
             return True
         return False
 
+    # Gets all servers belonging to a specific node (static data) (Application API)
+    async def get_node_servers(self, node_id: int) -> list:
+        # Using the servers endpoint filtered by node and include allocations to get IP/ports
+        data = await self._request("GET", f"/api/application/servers?filter[node]={node_id}&include=allocations")
+        if data and "data" in data:
+            return [server["attributes"] for server in data["data"]]
+        return []
+
+    # Gets the real-time resource usage and state of a server (Client API)
+    async def get_server_status(self, server_identifier: str) -> Optional[str]:
+        data = await self._request("GET", f"/api/client/servers/{server_identifier}/resources", is_client_api=True)
+        if data and "attributes" in data:
+            return data["attributes"].get("current_state", "offline")
+        return None
+
+    # Gets server details (Panel-User stuff) (Client API)
+    # Maybe for later use
+    # async def get_server_details(self, server_identifier: str) -> Optional[Dict[str, Any]]:
+    #     return await self._request("GET", f"/api/client/servers/{server_identifier}", is_client_api=True)
+
+    # Sends a power signal to a server (Client API)
+    async def send_power_action(self, server_identifier: str, signal: str) -> bool:
+        # signal can be: start, stop, restart, kill
+        payload = {"signal": signal}
+        # Client API power endpoint uses POST. On success, it returns 204 No Content, cuz we dont get info
+        result = await self._request("POST", f"/api/client/servers/{server_identifier}/power", is_client_api=True, json=payload)
+        return result is not None
+
 # Global instance
 ptero = PteroClient()
