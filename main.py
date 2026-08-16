@@ -24,8 +24,10 @@ class PteroBot(commands.Bot):
         )
 
     async def setup_hook(self):
-        # placeholder for loading cogs later
-        pass
+        await self.load_extension("cogs.auto_shutdown")
+        # TODO: uncomment once dashboard is ready
+        # await self.load_extension("cogs.dashboard")
+        await self.tree.sync()
 
     async def on_ready(self):
         logger.info(f"Logged in as {self.user} (ID: {self.user.id})")
