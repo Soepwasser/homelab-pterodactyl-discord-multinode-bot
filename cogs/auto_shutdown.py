@@ -9,7 +9,7 @@ from discord.ext import tasks, commands
 from config import ENABLE_AUTO_SHUTDOWN, SERVER_IDLE_SHUTDOWN_MINUTES, NODE_IDLE_SHUTDOWN_MINUTES, NODE2_PTERO_ID
 from utils.ptero_client import ptero
 from utils.game_client import get_minecraft_status
-from utils.power_manager import shutdown_node2
+from utils.power_manager import shutdown_node2, is_node2_online
 import utils.power_manager as power_manager
 
 logger = logging.getLogger("auto_shutdown")
@@ -31,11 +31,23 @@ class AutoShutdown(commands.Cog):
         if self.shutdown_loop.is_running():
             self.shutdown_loop.cancel()
 
+    # Helper to reset all idle-timers
+    def reset_all_timers(self):
+        self.server_idle_since.clear()
+        self.node_idle_since = None
+
     @tasks.loop(minutes=5.0)
     async def shutdown_loop(self):
         # If Node 2 is currently processing a command, skip auto-shutdown loop and wait for the next cycle
         if power_manager.is_node2_processing:
             logger.info("Node is currently processing a command, skipping auto-shutdown check.")
+            return
+
+        # 0. Hardware-Check, if Node 2 is offline, reset timers and do nothing else
+        node_online = await is_node2_online()
+        if not node_online:
+            self.reset_all_timers()
+            logger.info("Node offline...")
             return
 
         logger.info("Running auto-shutdown check...")
