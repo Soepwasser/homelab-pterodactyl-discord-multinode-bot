@@ -8,11 +8,12 @@ A Discord Bot to manage Pterodactyl servers on a multinode setup.
 ```text
 [ Discord User ] ─── (Slash Commands / UI Buttons) ───► [ PteroBot (Node 1) ]
                                                               │
-                     ┌────────────────────────────────────────┴────────────────────────────────────────┐
-                     ▼                                                                                 ▼
-     [ Pterodactyl Panel API ]                                                                 [ Node 2 Hardware ]
-  (Server List, Allocations, Power Actions)                                               (WoL / SSH Port Ping / SSH Shutdown)
+                     ┌────────────────────────────────────────┴──────────────────────────────┐
+                     ▼                                                                       ▼
+     [ Pterodactyl Panel API ]                                                       [ Node 2 Hardware ]
+  (Server List, Allocations, Power Actions)                                     (WoL / SSH Port Ping / SSH Shutdown)
 ```
+<img width="478" height="366" alt="Screenshot_2026-08-27_18-37-36" src="https://github.com/user-attachments/assets/815cfbb9-188e-4b72-951b-483eda7910a4" />
 
 ## Features
 - **Interactive Discord Live Dashboard (`/gservers`):**
