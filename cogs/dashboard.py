@@ -64,7 +64,8 @@ async def build_dashboard_embed(selected_server_id: str = None) -> discord.Embed
             primary = next((a for a in allocs if a.get("attributes", {}).get("id") == primary_id), None)
             players_str = ""
             if primary:
-                ip = primary["attributes"].get("alias") or primary["attributes"].get("ip")
+                # Use raw IP for game queries (aliases may not be resolvable)
+                ip = primary["attributes"].get("ip")
                 port = primary["attributes"].get("port")
                 if ip and port:
                     # TODO: Multi-Game Support (Egg ID) for players in overview
@@ -111,15 +112,7 @@ async def build_dashboard_embed(selected_server_id: str = None) -> discord.Embed
 
 class ServerSelect(discord.ui.Select):
     def __init__(self, servers, default_val=None):
-        options = []
-        for srv in servers:
-            name = srv.get("name", "Unknown")
-            identifier = srv.get("identifier")
-            options.append(discord.SelectOption(label=name, value=identifier, default=(identifier == default_val)))
-        
-        if not options:
-            options.append(discord.SelectOption(label="No servers found", value="none"))
-            
+        options = ServerSelect._build_options(servers, default_val)
         super().__init__(
             placeholder="Select a server...",
             min_values=1,
@@ -129,13 +122,31 @@ class ServerSelect(discord.ui.Select):
             row=0
         )
 
+    # Builds the dropdown options list from the server data
+    def _build_options(servers, default_val=None):
+        options = []
+        for srv in servers:
+            name = srv.get("name", "Unknown")
+            identifier = srv.get("identifier")
+            options.append(discord.SelectOption(label=name, value=identifier, default=(identifier == default_val)))
+        if not options:
+            options.append(discord.SelectOption(label="No servers found", value="none"))
+        return options
+
     async def callback(self, interaction: discord.Interaction):
         if power_manager.is_node2_processing:
             return await interaction.response.send_message("System is currently processing, please wait...", ephemeral=True)
             
-        self.view.selected_server = self.values[0]
+        # Defer before anything else to avoid Discord timeout
         await interaction.response.defer()
-        await self.view.refresh_dashboard(interaction.message, force=True)
+
+        # Use global refs (persistent view from cog_load has no server data)
+        target_view = dashboard_view_ref or self.view
+        message = dashboard_message_ref or interaction.message
+
+        if target_view and hasattr(target_view, 'selected_server'):
+            target_view.selected_server = self.values[0]
+            await target_view.refresh_dashboard(message, force=True)
 
 
 class DashboardView(discord.ui.View):
@@ -147,13 +158,16 @@ class DashboardView(discord.ui.View):
         self.update_select()
 
     def update_select(self):
-        # Remove existing select dropdown if present
-        for child in list(self.children):
-            if isinstance(child, discord.ui.Select):
-                self.remove_item(child)
-        
-        # Add select dropdown with current servers
-        self.add_item(ServerSelect(self.servers, self.selected_server))
+        # Update options in place to keep the view store reference valid (used remove/add before, not good no no)
+        existing_select = next(
+            (child for child in self.children if isinstance(child, ServerSelect)),
+            None
+        )
+
+        if existing_select is not None:
+            existing_select.options = ServerSelect._build_options(self.servers, self.selected_server)
+        else:
+            self.add_item(ServerSelect(self.servers, self.selected_server))
 
     def update_item_states(self):
         is_busy = power_manager.is_node2_processing
@@ -298,9 +312,15 @@ class DashboardView(discord.ui.View):
         primary = next((a for a in allocs if a.get("attributes", {}).get("id") == primary_id), None)
         
         if primary:
-            ip = primary["attributes"].get("alias") or primary["attributes"].get("ip")
+            alias = primary["attributes"].get("alias")
+            raw_ip = primary["attributes"].get("ip")
             port = primary["attributes"].get("port")
-            await interaction.response.send_message(f"Connection address: **{ip}:{port}**", ephemeral=True)
+            if alias:
+                # If alias is set, show port as optional, since sometimes its already included in the alias
+                addr_str = f"{alias} (:{port})"
+            else:
+                addr_str = f"{raw_ip}:{port}"
+            await interaction.response.send_message(f"Connection address: **{addr_str}**", ephemeral=True)
         else:
             await interaction.response.send_message("No IP address found.", ephemeral=True)
 

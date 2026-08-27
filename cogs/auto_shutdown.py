@@ -87,7 +87,8 @@ class AutoShutdown(commands.Cog):
                 ip = ""
                 port = 0
                 if primary_allocation:
-                    ip = primary_allocation["attributes"].get("alias") or primary_allocation["attributes"].get("ip")
+                    # Use raw IP for game queries (aliases may not be resolvable)
+                    ip = primary_allocation["attributes"].get("ip")
                     port = primary_allocation["attributes"].get("port")
                 
                 if ip and port:
