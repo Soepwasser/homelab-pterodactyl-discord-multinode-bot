@@ -25,8 +25,7 @@ class PteroBot(commands.Bot):
 
     async def setup_hook(self):
         await self.load_extension("cogs.auto_shutdown")
-        # TODO: uncomment once dashboard is ready
-        # await self.load_extension("cogs.dashboard")
+        await self.load_extension("cogs.dashboard")
         await self.tree.sync()
 
     async def on_ready(self):
