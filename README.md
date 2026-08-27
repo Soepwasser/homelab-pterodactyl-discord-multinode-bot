@@ -1,7 +1,7 @@
 # Pterodactyl Multinode Discord Bot
 
 ## Project Context
-A Discord Bot to manage Ptereodactyl servers on a multinode setup.
+A Discord Bot to manage Pterodactyl servers on a multinode setup.
 - **Node 1 (Infrastructure):** Runs 24/7 (Proxmox, Pterodactyl Panel).
 - **Node 2 (Game Servers):** Game server node (Wings, Game Servers). Turned on on demand to minimize power consumption.
 
@@ -161,7 +161,7 @@ sudo journalctl -u ptero-discord-bot -f
    /gservers
    ```
 2. The bot spawns the live dashboard embed with a dropdown to choose servers and buttons to control the node/server.
-3. The dashboard automatically refreshes every minute.
+3. The dashboard automatically refreshes every 10 seconds (configurable).
 
 ---
 
