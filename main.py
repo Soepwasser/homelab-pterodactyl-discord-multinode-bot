@@ -13,9 +13,9 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger("bot")
+logger = logging.getLogger("ptero-discordbot")
 
-class PteroBot(commands.Bot):
+class PteroDiscordBot(commands.Bot):
     def __init__(self):
         super().__init__(
             command_prefix="!", 
@@ -46,7 +46,7 @@ async def main():
         return
 
     # 2. Start the bot
-    bot = PteroBot()
+    bot = PteroDiscordBot()
     async with bot:
         await bot.start(DISCORD_TOKEN)
 
