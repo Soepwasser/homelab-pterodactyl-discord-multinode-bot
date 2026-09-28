@@ -8,7 +8,7 @@ from datetime import datetime, timezone, timedelta
 from discord.ext import tasks, commands
 from config import ENABLE_AUTO_SHUTDOWN, SERVER_IDLE_SHUTDOWN_MINUTES, NODE_IDLE_SHUTDOWN_MINUTES, NODE2_PTERO_ID
 from utils.ptero_client import ptero
-from utils.game_client import get_minecraft_status
+from utils.game_client import get_server_game_status
 from utils.power_manager import shutdown_node2, is_node2_online
 import utils.power_manager as power_manager
 
@@ -79,44 +79,36 @@ class AutoShutdown(commands.Cog):
             
             # 4. Server Idle Logic (only for "running" servers)
             if status == "running":
-                # Get IP and Port from the pre-fetched allocations
-                allocations = server.get("relationships", {}).get("allocations", {}).get("data", [])
-                primary_id = server.get("allocation")
-                primary_allocation = next((a for a in allocations if a.get("attributes", {}).get("id") == primary_id), None)
-                
-                ip = ""
-                port = 0
-                if primary_allocation:
-                    # Use raw IP for game queries (aliases may not be resolvable)
-                    ip = primary_allocation["attributes"].get("ip")
-                    port = primary_allocation["attributes"].get("port")
-                
-                if ip and port:
-                    # TODO: Currently hardcoded to Minecraft. In the future, fetch the server's
-                    # Egg ID (e.g. from the details API) and dynamically route to the correct
-                    # game client (Minecraft, Hytale, 7DtD, etc.) based on the Egg ID
-                    mc_status = await get_minecraft_status(ip, port)
-                    
-                    if mc_status["players_online"] == 0:
-                        # Server is empty
-                        if identifier not in self.server_idle_since:
-                            self.server_idle_since[identifier] = datetime.now(timezone.utc)
-                            logger.info(f"Server {identifier} is empty. Started idle timer.")
-                        else:
-                            # Check how long it has been empty
-                            idle_time = datetime.now(timezone.utc) - self.server_idle_since[identifier]
-                            if idle_time >= timedelta(minutes=SERVER_IDLE_SHUTDOWN_MINUTES):
-                                logger.info(f"Server {identifier} has been empty for >= {SERVER_IDLE_SHUTDOWN_MINUTES} mins. Sending STOP signal.")
-                                await ptero.send_power_action(identifier, "stop")
-                                # Remove from tracking to prevent spamming stop commands
-                                del self.server_idle_since[identifier]
+                game_status = await get_server_game_status(server)
+
+                # If the protocol is unknown/none, skip to avoid shutting down unmanaged servers
+                if game_status["protocol"] in ("unknown", "none"):
+                    logger.debug(f"Server {identifier} has unmanaged protocol, skipping idle check.")
+                    if identifier in self.server_idle_since:
+                        del self.server_idle_since[identifier]
+                # Server is confirmed online and empty, start timer if it's not already running
+                elif game_status["online"] and game_status["players_online"] == 0:
+                    if identifier not in self.server_idle_since:
+                        self.server_idle_since[identifier] = datetime.now(timezone.utc)
+                        logger.info(f"Server {identifier} is empty. Started idle timer.")
                     else:
-                        # Players are online, reset timer if it was tracking
-                        if identifier in self.server_idle_since:
-                            logger.info(f"Players joined server {identifier}. Resetting idle timer.")
+                        # Check how long it has been empty
+                        idle_time = datetime.now(timezone.utc) - self.server_idle_since[identifier]
+                        if idle_time >= timedelta(minutes=SERVER_IDLE_SHUTDOWN_MINUTES):
+                            logger.info(f"Server {identifier} has been empty for >= {SERVER_IDLE_SHUTDOWN_MINUTES} mins. Sending STOP signal.")
+                            await ptero.send_power_action(identifier, "stop")
+                            # Remove from tracking to prevent spamming stop commands
                             del self.server_idle_since[identifier]
+                # Players are online, reset timer if it was tracking
+                elif game_status["online"] and game_status["players_online"] > 0:
+                    if identifier in self.server_idle_since:
+                        logger.info(f"Players joined server {identifier}. Resetting idle timer.")
+                        del self.server_idle_since[identifier]
+                # Query failed (online=False), server is probably still booting, no timer
+                else:
+                    logger.debug(f"Server {identifier} query returned offline (probably still booting).")
+            # If server is not running, remove it from tracking for idle shutdown
             else:
-                # If server is not running, remove it from tracking for idle shutdown
                 if identifier in self.server_idle_since:
                     del self.server_idle_since[identifier]
 

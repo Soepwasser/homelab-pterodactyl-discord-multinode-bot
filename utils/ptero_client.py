@@ -65,7 +65,7 @@ class PteroClient:
     async def get_node_servers(self, node_id: int) -> list:
         # Fetch servers and filter them locally (cant filter by node directly with this endpoint)
         # The fetch limit can be adjusted in the config.py via PTERO_SERVER_FETCH_LIMIT
-        data = await self._request("GET", f"/api/application/servers?per_page={PTERO_SERVER_FETCH_LIMIT}&include=allocations")
+        data = await self._request("GET", f"/api/application/servers?per_page={PTERO_SERVER_FETCH_LIMIT}&include=allocations,egg,nest")
         if data and "data" in data:
             return [
                 server["attributes"] 

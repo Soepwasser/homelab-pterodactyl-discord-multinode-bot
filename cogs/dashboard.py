@@ -10,7 +10,7 @@ from discord.ext import commands, tasks
 from discord import app_commands
 from config import NODE2_PTERO_ID, PERMITTED_USER_ROLE_ID
 from utils.ptero_client import ptero
-from utils.game_client import get_minecraft_status
+from utils.game_client import get_server_game_status
 from utils.power_manager import wake_node2, is_node2_online
 import utils.power_manager as power_manager
 
@@ -58,20 +58,11 @@ async def build_dashboard_embed(selected_server_id: str = None) -> discord.Embed
         status = await ptero.get_server_status(identifier)
 
         if status == "running":
-            # Fetch players using allocations from the server list
-            allocs = srv.get("relationships", {}).get("allocations", {}).get("data", [])
-            primary_id = srv.get("allocation")
-            primary = next((a for a in allocs if a.get("attributes", {}).get("id") == primary_id), None)
+            # Query the game server for player count (auto-detects protocol from Egg, or uses the override from config.py)
+            game_status = await get_server_game_status(srv)
             players_str = ""
-            if primary:
-                # Use raw IP for game queries (aliases may not be resolvable)
-                ip = primary["attributes"].get("ip")
-                port = primary["attributes"].get("port")
-                if ip and port:
-                    # TODO: Multi-Game Support (Egg ID) for players in overview
-                    mc_status = await get_minecraft_status(ip, port)
-                    if mc_status["online"]:
-                        players_str = f"({mc_status['players_online']}/{mc_status['players_max']} players)"
+            if game_status["online"]:
+                players_str = f"({game_status['players_online']}/{game_status['players_max']} players)"
             
             overview_lines.append(f"🟢 **{name}**: Online {players_str}")
         elif status == "starting":

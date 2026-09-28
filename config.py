@@ -59,6 +59,14 @@ ENABLE_AUTO_SHUTDOWN: bool = True
 SERVER_IDLE_SHUTDOWN_MINUTES: int = 60
 NODE_IDLE_SHUTDOWN_MINUTES: int = 120
 
+# --- Game Protocol Detection ---
+# Optional: Override the automatic protocol detection for specific Egg IDs
+# Maps Pterodactyl Egg IDs to query protocols: "minecraft", "a2s" (steam games), or "none"
+# This always takes priority over the automatic keyword-based detection
+# Example:
+#   EGG_PROTOCOL_MAP = {1: "minecraft", 5: "a2s", 12: "none"}
+EGG_PROTOCOL_MAP: dict = {}
+
 # --- Meta ---
 BOT_NAME    = "Pterodactyl Multinode Bot"
-BOT_VERSION = "1.0.0"
+BOT_VERSION = "1.1.0"

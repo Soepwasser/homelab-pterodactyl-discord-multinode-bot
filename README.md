@@ -26,8 +26,9 @@ A Discord Bot to manage Pterodactyl servers on a multinode setup.
   - Automatically stops running servers before booting a newly selected server.
 - **Hardware Control:** Integration of Wake-on-LAN (WoL) to remotely boot Node 2.
 - **Node Status Verification:** Verifies the physical machine status via SSH port check.
-- **Automatic SSH Shutdown:** 2-Tier shutdown logic. Stops idle game servers when no players are online for x mins, and shuts down Node 2 via SSH when no servers are running.
-- **Pterodactyl API Integration:** Bulk querying of server limits and allocations.
+- **Automatic SSH Shutdown:** 2-Tier shutdown logic. Stops idle game servers when no players are online for x mins (safely skips unmanaged protocols), and shuts down Node 2 via SSH when no servers are running.
+- **Automatic Game Protocol Detection:** Automatically detects query protocols (Minecraft Java via ping & Steam/Valve games like VEIN, Valheim, 7DtD via A2S) via Egg keywords or config overrides, including dynamic A2S query port discovery across allocations.
+- **Pterodactyl API Integration:** Bulk querying of server limits, allocations, and egg/nest relationships.
 - **Permitted User Role:** Only users with a specific Role ID in Discord can use the command buttons.
 
 ---
@@ -93,6 +94,7 @@ A Discord Bot to manage Pterodactyl servers on a multinode setup.
 | `ENABLE_AUTO_SHUTDOWN` | `True` | Global toggle to enable or disable the auto-shutdown background loop |
 | `SERVER_IDLE_SHUTDOWN_MINUTES` | `60` | Idle time in minutes with 0 players online before stopping a running game server |
 | `NODE_IDLE_SHUTDOWN_MINUTES` | `120` | Idle time in minutes with 0 active servers before shutting down Node 2 hardware via SSH |
+| `EGG_PROTOCOL_MAP` | `{}` | Optional dictionary mapping Egg IDs to protocols (`"minecraft"`, `"a2s" (steam)`, `"none"`), overriding automatic keyword detection (e.g. `{1: "minecraft", 5: "a2s"}`) |
 
 ---
 
@@ -169,6 +171,5 @@ sudo journalctl -u ptero-discord-bot -f
 ## Vision / Roadmap
 - [ ] **Setup Script:** Add a one-liner setup / Install / Update / Uninstall script.
 - [ ] **Separate Auto-Shutdown Toggles:** Separate settings to enable/disable Server-level and Hardware-level auto-shutdown independently.
-- [ ] **Multi-Game Support (Egg IDs):** Route server status queries dynamically based on Pterodactyl Egg IDs (e.g. Minecraft, 7 Days to Die, etc.). (Currently it's only for minecraft)
 - [ ] **Map Control:** The ability to change maps for a server from the Discord Dashboard (currently only planned for Minecraft).
 - [ ] **CI/CD Pipeline:** Auto testing and deployment via GitHub Actions.
